@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 const CHAT_FILE = 'chat-history.json';
 const UPLOAD_DIR = 'uploads';
 
-// Создаем директорию для загрузок, если ее нет
+// Создаем директорию для загрузок
 if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
