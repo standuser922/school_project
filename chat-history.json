@@ -1,0 +1,175 @@
+[
+  {
+    "id": 1769268281886,
+    "username": "Система",
+    "message": "lox присоединился к чату",
+    "timestamp": "2026-01-24T15:24:41.886Z",
+    "type": "system"
+  },
+  {
+    "id": 1769268286122,
+    "username": "lox",
+    "message": "hkjhkjfsd",
+    "timestamp": "2026-01-24T15:24:46.122Z",
+    "socketId": "txuDLQHS_BepmBiHAAAB",
+    "type": "user"
+  },
+  {
+    "id": 1769268287570,
+    "username": "lox",
+    "message": "jhkjhafjahdkjfa",
+    "timestamp": "2026-01-24T15:24:47.570Z",
+    "socketId": "txuDLQHS_BepmBiHAAAB",
+    "type": "user"
+  },
+  {
+    "id": 1769268288459,
+    "username": "lox",
+    "message": "ikjj]",
+    "timestamp": "2026-01-24T15:24:48.459Z",
+    "socketId": "txuDLQHS_BepmBiHAAAB",
+    "type": "user"
+  },
+  {
+    "id": 1769268339672,
+    "username": "Система",
+    "message": "lox присоединился к чату",
+    "timestamp": "2026-01-24T15:25:39.672Z",
+    "type": "system"
+  },
+  {
+    "id": 1769268341383,
+    "username": "lox",
+    "message": "fjlfja",
+    "timestamp": "2026-01-24T15:25:41.383Z",
+    "socketId": "AzRuUMhoGG0iRyiEAAAB",
+    "type": "user"
+  },
+  {
+    "id": 1769268343574,
+    "username": "lox",
+    "message": "jkljkl",
+    "timestamp": "2026-01-24T15:25:43.574Z",
+    "socketId": "AzRuUMhoGG0iRyiEAAAB",
+    "type": "user"
+  },
+  {
+    "id": 1769268346064,
+    "username": "Система",
+    "message": "lox покинул чат",
+    "timestamp": "2026-01-24T15:25:46.064Z",
+    "type": "system"
+  },
+  {
+    "id": 1769268348575,
+    "username": "Система",
+    "message": "lox присоединился к чату",
+    "timestamp": "2026-01-24T15:25:48.575Z",
+    "type": "system"
+  },
+  {
+    "id": 1769268355043,
+    "username": "Система",
+    "message": "lox покинул чат",
+    "timestamp": "2026-01-24T15:25:55.043Z",
+    "type": "system"
+  },
+  {
+    "id": 1769268408902,
+    "username": "Система",
+    "message": "hfaishdfah присоединился к чату",
+    "timestamp": "2026-01-24T15:26:48.902Z",
+    "type": "system"
+  },
+  {
+    "id": 1769268417087,
+    "username": "hfaishdfah",
+    "message": "yhsdfauifad",
+    "timestamp": "2026-01-24T15:26:57.087Z",
+    "socketId": "f4N41OMEsHTzQN4NAAAF",
+    "type": "user"
+  },
+  {
+    "id": 1769268418366,
+    "username": "hfaishdfah",
+    "message": "jfjfjf",
+    "timestamp": "2026-01-24T15:26:58.366Z",
+    "socketId": "f4N41OMEsHTzQN4NAAAF",
+    "type": "user"
+  },
+  {
+    "id": 1769268494078,
+    "username": "Система",
+    "message": "hfaishdfah покинул чат",
+    "timestamp": "2026-01-24T15:28:14.078Z",
+    "type": "system"
+  },
+  {
+    "id": 1769268496580,
+    "username": "Система",
+    "message": "fkdj присоединился к чату",
+    "timestamp": "2026-01-24T15:28:16.580Z",
+    "type": "system"
+  },
+  {
+    "id": 1769268614143,
+    "username": "fkdj",
+    "message": "sdada",
+    "timestamp": "2026-01-24T15:30:14.143Z",
+    "socketId": "vFWSzmsPaKfCX_x7AAAH",
+    "type": "user"
+  },
+  {
+    "id": 1769268620869,
+    "username": "Система",
+    "message": "fkdj покинул чат",
+    "timestamp": "2026-01-24T15:30:20.869Z",
+    "type": "system"
+  },
+  {
+    "id": 1769268632629,
+    "username": "Система",
+    "message": "dada присоединился к чату",
+    "timestamp": "2026-01-24T15:30:32.629Z",
+    "type": "system"
+  },
+  {
+    "id": 1769268634676,
+    "username": "dada",
+    "message": "asdasdsa",
+    "timestamp": "2026-01-24T15:30:34.676Z",
+    "socketId": "lInztsLclGdYYWvrAAAJ",
+    "type": "user"
+  },
+  {
+    "id": 1769269157720,
+    "username": "Система",
+    "message": "вфыв присоединился к чату",
+    "timestamp": "2026-01-24T15:39:17.720Z",
+    "type": "system"
+  },
+  {
+    "id": 1769269302068,
+    "username": "Система",
+    "message": "вфыв присоединился к чату",
+    "timestamp": "2026-01-24T15:41:42.068Z",
+    "type": "system"
+  },
+  {
+    "id": 1769269696265,
+    "username": "Гость_-vdnC",
+    "message": "",
+    "file": {
+      "originalName": "ari.png",
+      "filename": "1769269696233-b31ea63b-627d-451b-b560-b67ef3d9c381.png",
+      "size": 2159909,
+      "mimetype": "image/png",
+      "url": "/uploads/1769269696233-b31ea63b-627d-451b-b560-b67ef3d9c381.png",
+      "type": "image",
+      "icon": "🖼️"
+    },
+    "timestamp": "2026-01-24T15:48:16.265Z",
+    "socketId": "-vdnCgHazk53I6TiAAAB",
+    "type": "file"
+  }
+]
