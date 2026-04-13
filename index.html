@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Node.js Чат с файлами</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -480,399 +481,277 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script>
-        let socket = io();
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    (function() {
+        'use strict';
+
+        const socket = io();
         let username = '';
-        let onlineUsers = 1;
         let filesToUpload = [];
-        let isDragging = false;
+        let isSending = false; // Защита от двойной отправки
 
-        // Установка имени пользователя
-        function setUsername() {
-            const input = document.getElementById('usernameInput');
-            username = input.value.trim();
+        // DOM элементы
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const fileButton = document.getElementById('fileButton');
+        const fileInput = document.getElementById('fileInput');
+        const usernameModal = document.getElementById('usernameModal');
+        const usernameInput = document.getElementById('usernameInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const dragOverlay = document.getElementById('dragOverlay');
+        const imageModal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const chatWindow = document.getElementById('chatWindow');
+        const onlineUsersDiv = document.getElementById('onlineUsers');
+
+        // ========== ИМЯ ПОЛЬЗОВАТЕЛЯ ==========
+        window.setUsername = function() {
+            const name = usernameInput.value.trim();
+            if (!name) return;
             
-            if (username) {
-                socket.emit('set username', username);
-                document.getElementById('usernameModal').style.display = 'none';
-                document.getElementById('messageInput').disabled = false;
-                document.getElementById('sendButton').disabled = false;
-                document.getElementById('fileButton').disabled = false;
-                document.getElementById('messageInput').focus();
-            }
-        }
+            username = name;
+            socket.emit('set username', username);
+            usernameModal.style.display = 'none';
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            fileButton.disabled = false;
+            messageInput.focus();
+        };
 
-        // Открытие выбора файлов
-        function openFilePicker() {
-            document.getElementById('fileInput').click();
-        }
-
-        // Обработка выбора файлов
-        // Обработка файлов
-async function handleFiles(fileList) {
-    const previewContainer = document.getElementById('previewContainer');
-    previewContainer.style.display = 'block';
-    
-    for (let file of fileList) {
-        // Проверяем размер файла (10MB максимум)
-        if (file.size > 10 * 1024 * 1024) {
-            alert(`Файл ${file.name} слишком большой (максимум 10MB)`);
-            continue;
-        }
-        
-        const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        
-        // Для изображений создаем превью
-        if (file.type.startsWith('image/')) {
-            try {
-                const previewUrl = URL.createObjectURL(file);
-                filesToUpload.push({
-                    id: fileId,
-                    file: file,
-                    previewUrl: previewUrl
-                });
-                
-                const previewItem = document.createElement('div');
-                previewItem.className = 'preview-item';
-                previewItem.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${previewUrl}" alt="Превью" style="width: 40px; height: 40px; object-fit: cover; border-radius: 5px;">
-                        <div>
-                            <div>${file.name}</div>
-                            <div style="font-size: 12px; color: #64748b;">(${(file.size / 1024).toFixed(1)} KB)</div>
-                        </div>
-                    </div>
-                    <button class="remove-preview" onclick="removeFile('${fileId}')">×</button>
-                `;
-                
-                previewContainer.appendChild(previewItem);
-            } catch (error) {
-                console.error('Ошибка создания превью:', error);
-                addDefaultPreview(file, fileId);
-            }
-        } else {
-            addDefaultPreview(file, fileId);
-        }
-    }
-    
-    // Сбрасываем значение input, чтобы можно было выбрать те же файлы снова
-    document.getElementById('fileInput').value = '';
-}
-
-function addDefaultPreview(file, fileId) {
-    filesToUpload.push({
-        id: fileId,
-        file: file
-    });
-    
-    const previewItem = document.createElement('div');
-    previewItem.className = 'preview-item';
-    previewItem.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <i class="fas fa-file" style="color: #4f46e5; font-size: 24px;"></i>
-            <div>
-                <div>${file.name}</div>
-                <div style="font-size: 12px; color: #64748b;">(${(file.size / 1024).toFixed(1)} KB)</div>
-            </div>
-        </div>
-        <button class="remove-preview" onclick="removeFile('${fileId}')">×</button>
-    `;
-    
-    document.getElementById('previewContainer').appendChild(previewItem);
-}
-
-// Удаление файла из превью
-function removeFile(fileId) {
-    // Освобождаем URL превью для изображений
-    const fileData = filesToUpload.find(f => f.id === fileId);
-    if (fileData && fileData.previewUrl) {
-        URL.revokeObjectURL(fileData.previewUrl);
-    }
-    
-    filesToUpload = filesToUpload.filter(f => f.id !== fileId);
-    updatePreview();
-}
-
-// Загрузка файлов на сервер
-async function uploadFiles(messageText) {
-    const uploadProgress = document.getElementById('uploadProgress');
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
-    
-    if (filesToUpload.length === 0) {
-        sendTextMessage(messageText);
-        return;
-    }
-    
-    uploadProgress.style.display = 'block';
-    
-    try {
-        const uploadedFiles = [];
-        
-        for (let i = 0; i < filesToUpload.length; i++) {
-            const fileData = filesToUpload[i];
-            const file = fileData.file;
-            
-            // Обновляем прогресс
-            const progress = ((i + 1) / filesToUpload.length) * 100;
-            progressFill.style.width = `${progress}%`;
-            progressText.textContent = `Загрузка ${Math.round(progress)}%`;
-            
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (result.url) {
-                uploadedFiles.push(result);
-            }
-        }
-        
-        // Отправляем все файлы в одном сообщении
-        if (uploadedFiles.length > 0) {
-            socket.emit('file message', {
-                message: messageText,
-                files: uploadedFiles  // Отправляем массив файлов
-            });
-        }
-        
-        // Очищаем после успешной загрузки
-        filesToUpload.forEach(fileData => {
-            if (fileData.previewUrl) {
-                URL.revokeObjectURL(fileData.previewUrl);
-            }
-        });
-        
-        filesToUpload = [];
-        updatePreview();
-        document.getElementById('messageInput').value = '';
-        
-    } catch (error) {
-        console.error('Ошибка загрузки файла:', error);
-        alert('Ошибка при загрузке файлов');
-    } finally {
-        uploadProgress.style.display = 'none';
-        progressFill.style.width = '0%';
-    }
-}
-
-        document.addEventListener('dragleave', function(e) {
-            if (e.clientX <= 0 || e.clientY <= 0 || 
-                e.clientX >= window.innerWidth || 
-                e.clientY >= window.innerHeight) {
-                isDragging = false;
-                dragOverlay.style.display = 'none';
-            }
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') setUsername();
         });
 
-        messageInput.addEventListener('drop', function(e) {
+        // ========== ВЫБОР ФАЙЛОВ ==========
+        window.openFilePicker = function() {
+            fileInput.click();
+        };
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFiles(e.target.files);
+            }
+            fileInput.value = ''; // Сброс для повторного выбора того же файла
+        });
+
+        // ========== DRAG & DROP ==========
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('dragenter', (e) => {
             e.preventDefault();
-            isDragging = false;
+            dragOverlay.style.display = 'flex';
+        });
+        dragOverlay.addEventListener('dragover', (e) => e.preventDefault());
+        dragOverlay.addEventListener('dragleave', () => {
             dragOverlay.style.display = 'none';
-            
+        });
+        dragOverlay.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragOverlay.style.display = 'none';
             if (e.dataTransfer.files.length > 0) {
                 handleFiles(e.dataTransfer.files);
             }
         });
 
-        document.addEventListener('dragover', function(e) {
-            e.preventDefault();
-        });
-
-        // Обработка файлов
+        // ========== ОБРАБОТКА ФАЙЛОВ ==========
         function handleFiles(fileList) {
-            const previewContainer = document.getElementById('previewContainer');
             previewContainer.style.display = 'block';
-            
-            for (let file of fileList) {
-                // Проверяем размер файла (10MB максимум)
+
+            for (const file of fileList) {
                 if (file.size > 10 * 1024 * 1024) {
-                    alert(`Файл ${file.name} слишком большой (максимум 10MB)`);
+                    alert(`Файл "${file.name}" слишком большой (максимум 10MB)`);
                     continue;
                 }
-                
+
                 const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-                filesToUpload.push({
-                    id: fileId,
-                    file: file
-                });
-                
-                const previewItem = document.createElement('div');
-                previewItem.className = 'preview-item';
-                previewItem.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <i class="fas fa-file" style="color: #4f46e5;"></i>
-                        <span>${file.name}</span>
-                        <span style="font-size: 12px; color: #64748b;">(${(file.size / 1024).toFixed(1)} KB)</span>
-                    </div>
-                    <button class="remove-preview" onclick="removeFile('${fileId}')">×</button>
-                `;
-                
-                previewContainer.appendChild(previewItem);
+                const fileData = { id: fileId, file: file };
+
+                if (file.type.startsWith('image/')) {
+                    fileData.previewUrl = URL.createObjectURL(file);
+                }
+
+                filesToUpload.push(fileData);
+                addPreviewElement(fileData);
             }
-            
-            // Сбрасываем значение input, чтобы можно было выбрать те же файлы снова
-            document.getElementById('fileInput').value = '';
         }
 
-        // Удаление файла из превью
-        function removeFile(fileId) {
+        function addPreviewElement(fileData) {
+            const file = fileData.file;
+            const previewItem = document.createElement('div');
+            previewItem.className = 'preview-item';
+            previewItem.dataset.fileId = fileData.id;
+
+            const iconHtml = file.type.startsWith('image/')
+                ? `<img src="${fileData.previewUrl}" style="width:40px;height:40px;object-fit:cover;border-radius:5px;">`
+                : `<i class="fas fa-file" style="color:#4f46e5;font-size:24px;"></i>`;
+
+            previewItem.innerHTML = `
+                <div style="display:flex;align-items:center;gap:10px;">
+                    ${iconHtml}
+                    <div>
+                        <div>${file.name}</div>
+                        <div style="font-size:12px;color:#64748b;">(${(file.size / 1024).toFixed(1)} KB)</div>
+                    </div>
+                </div>
+                <button class="remove-preview" data-fileid="${fileData.id}">×</button>
+            `;
+
+            previewItem.querySelector('.remove-preview').addEventListener('click', (e) => {
+                const id = e.target.dataset.fileid;
+                removeFile(id);
+            });
+
+            previewContainer.appendChild(previewItem);
+        }
+
+        window.removeFile = function(fileId) {
+            const fileData = filesToUpload.find(f => f.id === fileId);
+            if (fileData?.previewUrl) {
+                URL.revokeObjectURL(fileData.previewUrl);
+            }
             filesToUpload = filesToUpload.filter(f => f.id !== fileId);
-            updatePreview();
-        }
 
-        // Обновление превью
-        function updatePreview() {
-            const previewContainer = document.getElementById('previewContainer');
-            previewContainer.innerHTML = '';
-            
-            if (filesToUpload.length > 0) {
-                previewContainer.style.display = 'block';
-                filesToUpload.forEach(fileData => {
-                    const file = fileData.file;
-                    const previewItem = document.createElement('div');
-                    previewItem.className = 'preview-item';
-                    previewItem.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <i class="fas fa-file" style="color: #4f46e5;"></i>
-                            <span>${file.name}</span>
-                            <span style="font-size: 12px; color: #64748b;">(${(file.size / 1024).toFixed(1)} KB)</span>
-                        </div>
-                        <button class="remove-preview" onclick="removeFile('${fileData.id}')">×</button>
-                    `;
-                    previewContainer.appendChild(previewItem);
-                });
-            } else {
+            const previewItem = previewContainer.querySelector(`[data-file-id="${fileId}"]`);
+            if (previewItem) previewItem.remove();
+
+            if (filesToUpload.length === 0) {
                 previewContainer.style.display = 'none';
             }
-        }
+        };
 
-        // Загрузка файлов на сервер
-        async function uploadFiles(messageText) {
-            const uploadProgress = document.getElementById('uploadProgress');
-            const progressFill = document.getElementById('progressFill');
-            const progressText = document.getElementById('progressText');
-            
-            if (filesToUpload.length === 0) {
-                sendTextMessage(messageText);
+        // ========== ОТПРАВКА СООБЩЕНИЯ ==========
+        async function sendMessage() {
+            // Защита от двойного вызова
+            if (isSending) {
+                console.warn('Отправка уже выполняется, подождите...');
                 return;
             }
-            
+
+            const messageText = messageInput.value.trim();
+
+            // Нечего отправлять
+            if (filesToUpload.length === 0 && !messageText) return;
+
+            isSending = true;
+            sendButton.disabled = true;
+
+            try {
+                if (filesToUpload.length > 0) {
+                    await uploadFilesAndSend(messageText);
+                } else {
+                    sendTextMessage(messageText);
+                }
+            } catch (error) {
+                console.error('Ошибка при отправке:', error);
+                alert('Ошибка при отправке сообщения. Попробуйте ещё раз.');
+            } finally {
+                isSending = false;
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        async function uploadFilesAndSend(messageText) {
             uploadProgress.style.display = 'block';
-            
+
             try {
                 for (let i = 0; i < filesToUpload.length; i++) {
                     const fileData = filesToUpload[i];
                     const file = fileData.file;
-                    
+
                     // Обновляем прогресс
-                    const progress = ((i + 1) / filesToUpload.length) * 100;
-                    progressFill.style.width = `${progress}%`;
-                    progressText.textContent = `Загрузка ${Math.round(progress)}%`;
-                    
+                    const percent = ((i + 1) / filesToUpload.length) * 100;
+                    progressFill.style.width = `${percent}%`;
+                    progressText.textContent = `Загрузка ${Math.round(percent)}% (${i + 1}/${filesToUpload.length})`;
+
+                    console.log(`Загружаем файл ${i + 1}/${filesToUpload.length}: ${file.name}`);
+
                     const formData = new FormData();
                     formData.append('file', file);
-                    
+
                     const response = await fetch('/upload', {
                         method: 'POST',
                         body: formData
                     });
-                    
-                    const result = await response.json();
-                    
-                    if (result.url) {
-                        // Отправляем сообщение с файлом
-                        socket.emit('file message', {
-                            message: i === 0 ? messageText : '', // Текст только к первому файлу
-                            file: result
-                        });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Ошибка загрузки');
                     }
+
+                    const result = await response.json();
+                    console.log('Файл загружен:', result);
+
+                    // Отправляем файловое сообщение
+                    // Текст добавляем только к первому файлу
+                    socket.emit('file message', {
+                        message: (i === 0 ? messageText : ''),
+                        file: result
+                    });
                 }
-                
-                // Очищаем после успешной загрузки
+
+                // Очистка после успешной отправки
+                filesToUpload.forEach(f => {
+                    if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+                });
                 filesToUpload = [];
-                updatePreview();
-                document.getElementById('messageInput').value = '';
-                
+                previewContainer.innerHTML = '';
+                previewContainer.style.display = 'none';
+                messageInput.value = '';
+
             } catch (error) {
                 console.error('Ошибка загрузки файла:', error);
-                alert('Ошибка при загрузке файлов');
+                alert(`Ошибка: ${error.message}`);
             } finally {
                 uploadProgress.style.display = 'none';
                 progressFill.style.width = '0%';
+                progressText.textContent = 'Загрузка 0%';
             }
         }
 
-        // Отправка текстового сообщения
-        function sendTextMessage(messageText) {
-            if (messageText.trim()) {
-                socket.emit('chat message', messageText.trim());
-                document.getElementById('messageInput').value = '';
-            }
+        function sendTextMessage(text) {
+            if (!text) return;
+            socket.emit('chat message', text);
+            messageInput.value = '';
         }
 
-        // Основная функция отправки сообщения
-        function sendMessage() {
-            const messageInput = document.getElementById('messageInput');
-            const messageText = messageInput.value.trim();
-            
-            if (filesToUpload.length > 0 || messageText) {
-                uploadFiles(messageText);
-            }
-        }
+        // ========== ОБРАБОТЧИКИ ОТПРАВКИ ==========
+        sendButton.addEventListener('click', sendMessage);
 
-        // Отправка по Ctrl+Enter или Enter
-        messageInput.addEventListener('keydown', function(e) {
+        messageInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
             }
         });
 
-        // Авторазмер textarea
         messageInput.addEventListener('input', function() {
             this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
+            this.style.height = this.scrollHeight + 'px';
         });
 
-        // Ввод имени по Enter
-        document.getElementById('usernameInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                setUsername();
-            }
-        });
-
-        // Получение истории чата
+        // ========== ПОЛУЧЕНИЕ СООБЩЕНИЙ ==========
         socket.on('chat history', (history) => {
-            const chatWindow = document.getElementById('chatWindow');
-            history.forEach(msg => {
-                displayMessage(msg);
-            });
+            chatWindow.innerHTML = '';
+            history.forEach(msg => displayMessage(msg));
         });
 
-        // Получение новых сообщений
         socket.on('chat message', (data) => {
             displayMessage(data);
         });
 
-        // Обновление счетчика онлайн пользователей
         socket.on('user count', (count) => {
-            onlineUsers = count;
-            document.getElementById('onlineUsers').innerHTML = 
-                `<i class="fas fa-user-friends"></i> Пользователей онлайн: ${count}`;
+            onlineUsersDiv.innerHTML = `<i class="fas fa-user-friends"></i> Пользователей онлайн: ${count}`;
         });
 
-        // Отображение сообщения
+        // ========== ОТОБРАЖЕНИЕ СООБЩЕНИЯ ==========
         function displayMessage(data) {
-            const chatWindow = document.getElementById('chatWindow');
             const messageDiv = document.createElement('div');
-            
             let messageClass = 'message ';
+
             if (data.type === 'system') {
                 messageClass += 'system';
             } else if (data.username === username) {
@@ -880,91 +759,77 @@ async function uploadFiles(messageText) {
             } else {
                 messageClass += 'other';
             }
-            
-            if (data.file) {
-                messageClass += ' file';
-            }
-            
+
+            if (data.file) messageClass += ' file';
+
             const time = new Date(data.timestamp).toLocaleTimeString('ru-RU', {
                 hour: '2-digit',
                 minute: '2-digit'
             });
-            
-            messageDiv.className = messageClass;
-            
-            let messageContent = '';
+
+            let contentHtml = data.message ? `<div class="message-content">${escapeHtml(data.message)}</div>` : '';
+
             if (data.file) {
                 const file = data.file;
                 if (file.type === 'image') {
-                    messageContent = `
+                    contentHtml += `
                         <div class="file-preview">
-                            <img src="${file.url}" alt="${file.originalName}" onclick="viewImage('${file.url}')">
-                        </div>
-                        <div class="file-info">
-                            <div class="file-icon">${file.icon}</div>
-                            <div class="file-details">
-                                <span class="file-name">${file.originalName}</span>
-                                <span class="file-size">${(file.size / 1024).toFixed(1)} KB</span>
-                            </div>
-                            <a href="${file.url}" class="download-btn" download="${file.originalName}">
-                                <i class="fas fa-download"></i>
-                            </a>
-                        </div>
-                    `;
-                } else {
-                    messageContent = `
-                        <div class="file-info">
-                            <div class="file-icon">${file.icon}</div>
-                            <div class="file-details">
-                                <span class="file-name">${file.originalName}</span>
-                                <span class="file-size">${(file.size / 1024).toFixed(1)} KB</span>
-                            </div>
-                            <a href="${file.url}" class="download-btn" download="${file.originalName}">
-                                <i class="fas fa-download"></i>
-                            </a>
+                            <img src="${file.url}" alt="${escapeHtml(file.originalName)}" onclick="viewImage('${file.url}')">
                         </div>
                     `;
                 }
-                
-                if (data.message) {
-                    messageContent = `<div class="message-content">${data.message}</div>` + messageContent;
-                }
-            } else {
-                messageContent = `<div class="message-content">${data.message}</div>`;
+                contentHtml += `
+                    <div class="file-info">
+                        <div class="file-icon">${file.icon || '📎'}</div>
+                        <div class="file-details">
+                            <span class="file-name">${escapeHtml(file.originalName)}</span>
+                            <span class="file-size">${(file.size / 1024).toFixed(1)} KB</span>
+                        </div>
+                        <a href="${file.url}" class="download-btn" download="${escapeHtml(file.originalName)}">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </div>
+                `;
             }
-            
+
+            messageDiv.className = messageClass;
             messageDiv.innerHTML = `
                 <div class="message-header">
-                    <span>${data.username}</span>
-                    <span style="font-size: 0.8em; opacity: 0.8;">${time}</span>
+                    <span>${escapeHtml(data.username)}</span>
+                    <span style="font-size:0.8em;opacity:0.8;">${time}</span>
                 </div>
-                ${messageContent}
+                ${contentHtml}
             `;
-            
+
             chatWindow.appendChild(messageDiv);
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
-        // Просмотр изображения в полном размере
-        function viewImage(url) {
-            document.getElementById('modalImage').src = url;
-            document.getElementById('imageModal').style.display = 'flex';
+        // Простая защита от XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
-        // Закрытие модального окна с изображением
-        function closeImageModal() {
-            document.getElementById('imageModal').style.display = 'none';
-        }
+        // ========== ПРОСМОТР ИЗОБРАЖЕНИЙ ==========
+        window.viewImage = function(url) {
+            modalImage.src = url;
+            imageModal.style.display = 'flex';
+        };
 
-        // Фокус на поле ввода имени при загрузке
-        document.getElementById('usernameInput').focus();
+        window.closeImageModal = function() {
+            imageModal.style.display = 'none';
+        };
 
-        // Закрытие модального окна по клику вне его
-        document.getElementById('imageModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeImageModal();
-            }
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) closeImageModal();
         });
-    </script>
+
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        usernameInput.focus();
+    })();
+</script>
 </body>
 </html>

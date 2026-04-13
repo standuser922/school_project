@@ -37,11 +37,31 @@ const upload = multer({
     },
     fileFilter: (req, file, cb) => {
         const allowedTypes = [
-            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-            'application/pdf', 'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'text/plain', 'application/zip', 'application/x-rar-compressed'
-        ];
+    // Изображения
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    // Документы
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    // Архивы
+    'application/zip',
+    'application/x-rar-compressed',
+    'application/x-7z-compressed',
+    'application/x-tar',
+    'application/gzip',
+    // Исполняемые файлы
+    'application/x-msdownload',        // .exe
+    'application/x-msdos-program',     // альтернативный тип для .exe
+    'application/octet-stream',        // бинарные файлы (включая .exe, .dll, .bin)
+    // Аудио/видео
+    'audio/mpeg', 'audio/wav', 'audio/ogg',
+    'video/mp4', 'video/webm'
+];
         
         if (allowedTypes.includes(file.mimetype)) {
             cb(null, true);
