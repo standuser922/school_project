@@ -14,12 +14,10 @@ const PORT = process.env.PORT || 3000;
 const CHAT_FILE = 'chat-history.json';
 const UPLOAD_DIR = 'uploads';
 
-// Создаем директорию для загрузок, если ее нет
 if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-// Настройка multer для загрузки файлов
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, UPLOAD_DIR);
@@ -33,13 +31,11 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB максимум
+        fileSize: 10 * 1024 * 1024, 
     },
     fileFilter: (req, file, cb) => {
         const allowedTypes = [
-    // Изображения
     'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    // Документы
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -48,17 +44,14 @@ const upload = multer({
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    // Архивы
     'application/zip',
     'application/x-rar-compressed',
     'application/x-7z-compressed',
     'application/x-tar',
     'application/gzip',
-    // Исполняемые файлы
-    'application/x-msdownload',        // .exe
-    'application/x-msdos-program',     // альтернативный тип для .exe
-    'application/octet-stream',        // бинарные файлы (включая .exe, .dll, .bin)
-    // Аудио/видео
+    'application/x-msdownload',        
+    'application/x-msdos-program',     
+    'application/octet-stream',       
     'audio/mpeg', 'audio/wav', 'audio/ogg',
     'video/mp4', 'video/webm'
 ];
@@ -71,12 +64,9 @@ const upload = multer({
     }
 });
 
-// Middleware для обработки JSON и статических файлов
 app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static(UPLOAD_DIR));
-app.use(express.static(__dirname)); // Для статических файлов
-
-// Загрузка истории чата
+app.use(express.static(__dirname)); 
 function loadChatHistory() {
     try {
         const data = fs.readFileSync(CHAT_FILE, 'utf8');
@@ -87,13 +77,11 @@ function loadChatHistory() {
     }
 }
 
-// Сохранение сообщения
 function saveMessage(message) {
     try {
         const history = loadChatHistory();
         history.push(message);
         
-        // Ограничиваем историю последними 1000 сообщениями
         const limitedHistory = history.slice(-1000);
         
         fs.writeFileSync(CHAT_FILE, JSON.stringify(limitedHistory, null, 2));
@@ -102,7 +90,6 @@ function saveMessage(message) {
     }
 }
 
-// Получение MIME типа для иконок файлов
 function getFileIcon(filename) {
     const ext = path.extname(filename).toLowerCase();
     const iconMap = {
@@ -123,7 +110,6 @@ function getFileIcon(filename) {
     return iconMap[ext] || '📎';
 }
 
-// Определяем тип файла
 function getFileType(filename) {
     const ext = path.extname(filename).toLowerCase();
     const imageTypes = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
@@ -136,17 +122,14 @@ function getFileType(filename) {
     return 'other';
 }
 
-// Основной маршрут
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// API для получения истории чата
 app.get('/history', (req, res) => {
     res.json(loadChatHistory());
 });
 
-// API для загрузки файлов (используем multer)
 app.post('/upload', upload.single('file'), (req, res) => {
     try {
         if (!req.file) {
@@ -171,7 +154,6 @@ app.post('/upload', upload.single('file'), (req, res) => {
     }
 });
 
-// API для загрузки файлов base64 (для drag & drop)
 app.post('/upload-base64', express.json({ limit: '10mb' }), async (req, res) => {
     try {
         const { filename, data, type } = req.body;
@@ -180,18 +162,15 @@ app.post('/upload-base64', express.json({ limit: '10mb' }), async (req, res) => 
             return res.status(400).json({ error: 'Отсутствуют данные файла' });
         }
         
-        // Убираем префикс base64 если есть
         const base64Data = data.replace(/^data:image\/\w+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
         
-        // Генерируем уникальное имя файла
         const fileExt = type === 'image/png' ? '.png' : 
                        type === 'image/jpeg' ? '.jpg' :
                        path.extname(filename);
         const uniqueName = `${Date.now()}-${uuidv4()}${fileExt}`;
         const filePath = path.join(UPLOAD_DIR, uniqueName);
-        
-        // Сохраняем файл
+       
         await fs.promises.writeFile(filePath, buffer);
         
         const fileUrl = `/uploads/${uniqueName}`;
@@ -212,7 +191,6 @@ app.post('/upload-base64', express.json({ limit: '10mb' }), async (req, res) => 
     }
 });
 
-// Обработка ошибок multer
 app.use((error, req, res, next) => {
     if (error instanceof multer.MulterError) {
         if (error.code === 'LIMIT_FILE_SIZE') {
@@ -228,7 +206,6 @@ app.use((error, req, res, next) => {
     next();
 });
 
-// Обработка WebSocket соединений
 io.on('connection', (socket) => {
     console.log('Новый пользователь подключился:', socket.id);
 
